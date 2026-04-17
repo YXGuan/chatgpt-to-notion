@@ -37,11 +37,10 @@ chrome.runtime.onInstalled.addListener((details) => {
     storage.set(STORAGE_KEYS.ecoModeActive, false)
     storage.set(STORAGE_KEYS.ecoModePopup, false)
   }
-  if (details.reason === "update") {
-    chrome.tabs.create({
-      url: `chrome-extension://${chrome.runtime.id}/tabs/update.html`
-    })
-  }
+  // Intentionally do nothing on "update": the old code opened an
+  // update/changelog tab on every extension reload, which is extremely
+  // annoying during local development. The tab lives at
+  // src/tabs/update.tsx if you ever want to re-enable it.
 
   refreshContentScripts()
 })
