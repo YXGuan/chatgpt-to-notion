@@ -1,11 +1,13 @@
 /**
- * Enumerate the user's recent conversations and group them by the `gizmo_id`
- * that ChatGPT attaches to project-bound chats. Projects have gizmo ids of
- * the form `g-p-<uuid>-<slug>`.
+ * Enumerate the user's recent conversations and group them by the project
+ * gizmo that ChatGPT attaches. Projects have gizmo ids of the form
+ * `g-p-<uuid>-<slug>`.
  *
- * ChatGPT does not expose a clean public "list my projects" endpoint. The
- * conversations listing is the most reliable source available to a browser
- * extension that already knows the user's auth headers.
+ * ChatGPT does not expose a clean public "list my projects" endpoint. Worse,
+ * the `gizmo_id` field on conversation items isn't consistently populated —
+ * some recently moved-in conversations stick the id under other keys. So we
+ * collect candidate ids from several fields and trust whatever the server
+ * echoes back.
  */
 
 const PAGE_SIZE = 50
@@ -23,16 +25,36 @@ type ConversationItem = {
   id: string
   title?: string
   gizmo_id?: string | null
+  conversation_template_id?: string | null
+  project_id?: string | null
   async_status?: number
 }
 
-const isProjectGizmo = (g?: string | null): g is string =>
-  typeof g === "string" && g.startsWith("g-p-")
+const PROJECT_PREFIX = "g-p-"
+const PROJECT_TEMPLATE_PREFIX = "g-p-" // templates sometimes also carry g-p-
+
+/**
+ * Find every string on a conversation item that looks like a project gizmo id.
+ * Some items carry the project id under `gizmo_id`, others under
+ * `conversation_template_id`, others under a nested field. We scan defensively.
+ */
+const collectProjectIdsFromItem = (item: any): string[] => {
+  const found = new Set<string>()
+  const visit = (v: any) => {
+    if (v == null) return
+    if (typeof v === "string" && v.startsWith(PROJECT_PREFIX)) found.add(v)
+    else if (Array.isArray(v)) v.forEach(visit)
+    else if (typeof v === "object") Object.values(v).forEach(visit)
+  }
+  visit(item)
+  return Array.from(found)
+}
 
 export const listChatGPTProjects = async (
   headers: any
 ): Promise<ChatGPTProject[]> => {
   const byId = new Map<string, ChatGPTProject>()
+  let sampleLoggedOnce = false
 
   for (let page = 0; page < MAX_PAGES; page++) {
     const offset = page * PAGE_SIZE
@@ -50,17 +72,28 @@ export const listChatGPTProjects = async (
       const items: ConversationItem[] = data?.items ?? []
       if (items.length === 0) break
 
+      if (!sampleLoggedOnce && items.length > 0) {
+        // Help debugging: dump the keys we actually have to work with.
+        console.log(
+          "[chatgpt-to-notion] sample conversation item keys:",
+          Object.keys(items[0]),
+          "first item:",
+          items[0]
+        )
+        sampleLoggedOnce = true
+      }
+
       for (const item of items) {
-        if (!isProjectGizmo(item.gizmo_id)) continue
-        const existing = byId.get(item.gizmo_id)
-        if (existing) {
-          existing.conversationCount++
-        } else {
-          byId.set(item.gizmo_id, {
-            gizmo_id: item.gizmo_id,
-            title: deriveProjectTitle(item.gizmo_id),
-            conversationCount: 1
-          })
+        const projectIds = collectProjectIdsFromItem(item)
+        for (const pid of projectIds) {
+          const existing = byId.get(pid)
+          if (existing) existing.conversationCount++
+          else
+            byId.set(pid, {
+              gizmo_id: pid,
+              title: deriveProjectTitle(pid),
+              conversationCount: 1
+            })
         }
       }
 
@@ -72,8 +105,8 @@ export const listChatGPTProjects = async (
     }
   }
 
-  // Try to upgrade each title by hitting the gizmo details endpoint (best
-  // effort; silently skip on failure).
+  // Try to upgrade each title via the gizmo details endpoint. Best-effort;
+  // silently skip on failure.
   await Promise.all(
     Array.from(byId.values()).map(async (project) => {
       try {
@@ -86,7 +119,8 @@ export const listChatGPTProjects = async (
         const name =
           data?.gizmo?.display?.name ??
           data?.gizmo?.short_url ??
-          data?.gizmo?.name
+          data?.gizmo?.name ??
+          data?.display?.name
         if (typeof name === "string" && name.length > 0) {
           project.title = name
         }
@@ -111,11 +145,144 @@ const deriveProjectTitle = (gizmoId: string) => {
 }
 
 /**
- * Fetch every conversation id that belongs to a given project (by gizmo_id).
- * Paginates through the same /conversations endpoint the extension already
- * relies on.
+ * Fetch every conversation id that belongs to a given project.
+ *
+ * Strategy:
+ *  1. Try the dedicated project endpoint (`/backend-api/gizmos/<id>/conversations`).
+ *  2. Fall back to the conversations listing with a `gizmo_id` query parameter.
+ *  3. Last resort: fetch the generic listing and filter client-side across
+ *     every field that might carry a project id.
+ *
+ * Only the ids we can confirm belong to the target project are returned.
  */
 export const listChatGPTProjectConversationIds = async (
+  headers: any,
+  projectGizmoId: string
+): Promise<string[]> => {
+  console.log(
+    "[chatgpt-to-notion] listing conversations for project",
+    projectGizmoId
+  )
+
+  // 1) Dedicated project endpoint
+  const viaDedicated = await tryDedicatedProjectEndpoint(
+    headers,
+    projectGizmoId
+  )
+  if (viaDedicated) {
+    console.log(
+      `[chatgpt-to-notion] dedicated endpoint returned ${viaDedicated.length} ids`
+    )
+    return viaDedicated
+  }
+
+  // 2) Generic listing with gizmo_id query param
+  const viaQueryParam = await tryGizmoIdQueryParam(headers, projectGizmoId)
+  if (viaQueryParam) {
+    console.log(
+      `[chatgpt-to-notion] gizmo_id query param returned ${viaQueryParam.length} ids`
+    )
+    return viaQueryParam
+  }
+
+  // 3) Defensive client-side filter
+  const viaClientFilter = await clientSideFilter(headers, projectGizmoId)
+  console.log(
+    `[chatgpt-to-notion] client-side filter returned ${viaClientFilter.length} ids`
+  )
+  return viaClientFilter
+}
+
+const tryDedicatedProjectEndpoint = async (
+  headers: any,
+  projectGizmoId: string
+): Promise<string[] | null> => {
+  const ids: string[] = []
+  for (let page = 0; page < MAX_PAGES; page++) {
+    const offset = page * PAGE_SIZE
+    try {
+      const res = await fetch(
+        `https://chatgpt.com/backend-api/gizmos/${projectGizmoId}/conversations?offset=${offset}&limit=${PAGE_SIZE}&order=updated`,
+        {
+          method: "GET",
+          headers,
+          credentials: "include"
+        }
+      )
+      if (!res.ok) {
+        if (page === 0) return null
+        break
+      }
+      const data = await res.json()
+      const items: ConversationItem[] = data?.items ?? []
+      if (items.length === 0) break
+
+      for (const item of items) ids.push(item.id)
+
+      const total: number | undefined = data?.total
+      if (typeof total === "number" && offset + items.length >= total) break
+    } catch (err) {
+      console.error("dedicated project endpoint failed", err)
+      if (page === 0) return null
+      break
+    }
+  }
+  return ids
+}
+
+const tryGizmoIdQueryParam = async (
+  headers: any,
+  projectGizmoId: string
+): Promise<string[] | null> => {
+  // Probe page 0 to decide if this param works. If the response doesn't look
+  // filtered (i.e. returns conversations with other project ids), reject.
+  try {
+    const res = await fetch(
+      `https://chatgpt.com/backend-api/conversations?offset=0&limit=${PAGE_SIZE}&order=updated&gizmo_id=${encodeURIComponent(
+        projectGizmoId
+      )}`,
+      { method: "GET", headers, credentials: "include" }
+    )
+    if (!res.ok) return null
+    const data = await res.json()
+    const items: ConversationItem[] = data?.items ?? []
+    if (items.length === 0) {
+      // Ambiguous: might be a real empty or might mean the param was ignored
+      // and a user with no conversations. Bail to the client-side filter.
+      return null
+    }
+    // Confirm filtering worked by checking every item carries the project id.
+    const allMatch = items.every((item) =>
+      collectProjectIdsFromItem(item).includes(projectGizmoId)
+    )
+    if (!allMatch) return null
+
+    const ids: string[] = items.map((i) => i.id)
+    const total: number | undefined = data?.total
+    let offset = items.length
+    for (let page = 1; page < MAX_PAGES; page++) {
+      if (typeof total === "number" && offset >= total) break
+      const r = await fetch(
+        `https://chatgpt.com/backend-api/conversations?offset=${offset}&limit=${PAGE_SIZE}&order=updated&gizmo_id=${encodeURIComponent(
+          projectGizmoId
+        )}`,
+        { method: "GET", headers, credentials: "include" }
+      )
+      if (!r.ok) break
+      const d = await r.json()
+      const it: ConversationItem[] = d?.items ?? []
+      if (it.length === 0) break
+      it.forEach((i) => ids.push(i.id))
+      offset += it.length
+    }
+    return ids
+  } catch (err) {
+    console.error("gizmo_id query param failed", err)
+    return null
+  }
+}
+
+const clientSideFilter = async (
   headers: any,
   projectGizmoId: string
 ): Promise<string[]> => {
@@ -126,11 +293,7 @@ export const listChatGPTProjectConversationIds = async (
     try {
       const res = await fetch(
         `https://chatgpt.com/backend-api/conversations?offset=${offset}&limit=${PAGE_SIZE}&order=updated`,
-        {
-          method: "GET",
-          headers: headers,
-          credentials: "include"
-        }
+        { method: "GET", headers, credentials: "include" }
       )
       if (!res.ok) break
       const data = await res.json()
@@ -138,13 +301,15 @@ export const listChatGPTProjectConversationIds = async (
       if (items.length === 0) break
 
       for (const item of items) {
-        if (item.gizmo_id === projectGizmoId) ids.push(item.id)
+        if (collectProjectIdsFromItem(item).includes(projectGizmoId)) {
+          ids.push(item.id)
+        }
       }
 
       const total: number | undefined = data?.total
       if (typeof total === "number" && offset + items.length >= total) break
     } catch (err) {
-      console.error("listChatGPTProjectConversationIds failed", err)
+      console.error("clientSideFilter failed", err)
       break
     }
   }

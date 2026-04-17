@@ -129,41 +129,38 @@ function DatabaseSettingsPopup() {
             </div>
           </div>
           <h3 className="font-semibold my-2">User prompts column</h3>
+          <p className="text-xs text-gray-600 mb-2">
+            If set, every save will concatenate all of your prompts into this
+            "Text" property on the Notion page.
+          </p>
           {(db.richTextProps ?? []).length === 0 ? (
             <p className="text-sm">
-              No text properties found. Add a "Text" property in Notion, then
-              hit refresh.
+              No text (rich_text) properties found. Add one in Notion, then hit
+              the refresh button above.
             </p>
           ) : (
             <div className="flex items-center gap-2">
-              <DropdownPopup
-                className="px-1 border border-main rounded min-w-[6rem] text-left"
-                position="down"
-                items={[
-                  <button
-                    key="__none__"
-                    className="py-1 px-3 italic"
-                    onClick={() => setPromptsPropertyId(null)}>
-                    (don't save prompts as a column)
-                  </button>,
-                  ...(db.richTextProps ?? []).map((prop) => (
-                    <button
-                      className="py-1 px-3"
-                      key={prop.id}
-                      onClick={() => setPromptsPropertyId(prop.id)}>
-                      {prop.name}
-                    </button>
-                  ))
-                ]}>
-                {db.promptsPropertyId
-                  ? db.richTextProps?.find(
-                      (p) => p.id === db.promptsPropertyId
-                    )?.name ?? "(missing)"
-                  : "(none)"}
-              </DropdownPopup>
-              <p className="text-xs text-gray-600">
-                Concatenates all user messages into this text property.
-              </p>
+              <select
+                className="border border-main rounded px-2 py-1 text-sm flex-1"
+                value={db.promptsPropertyId ?? ""}
+                onChange={(e) =>
+                  setPromptsPropertyId(e.target.value || null)
+                }>
+                <option value="">— don't save prompts as a column —</option>
+                {(db.richTextProps ?? []).map((prop) => (
+                  <option key={prop.id} value={prop.id}>
+                    {prop.name}
+                  </option>
+                ))}
+              </select>
+              {db.promptsPropertyId && (
+                <button
+                  type="button"
+                  className="text-xs text-red-500 underline"
+                  onClick={() => setPromptsPropertyId(null)}>
+                  clear
+                </button>
+              )}
             </div>
           )}
           <div className="border my-3" />
