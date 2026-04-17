@@ -41,11 +41,8 @@
       {
         "resources": [
           "assets/tab-demo.gif",
-          "assets/popup_notification.html",
-          "assets/sdk_translations.json",
           "assets/icon.png",
-          "assets/illustration.png",
-          "assets/merchants.json"
+          "assets/illustration.png"
         ],
         "matches": [
           "*://*/*"
@@ -54,7 +51,6 @@
     ],
     "host_permissions": [
       "https://api.notion.com/*",
-      "https://chatgpt-to-notion.onrender.com/*",
       "https://chat.openai.com/*",
       "https://chatgpt.com/*",
       "https://chat.deepseek.com/*",

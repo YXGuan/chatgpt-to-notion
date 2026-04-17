@@ -4,6 +4,7 @@ import { useEffect, useState } from "react"
 import { useStorage } from "@plasmohq/storage/hook"
 
 import useDebounce from "~hooks/useDebounce"
+import { STORAGE_KEYS } from "~utils/consts"
 import { formatDB, getDBTagsProperties, getIcon } from "~utils/functions/notion"
 import type { PopupEnum, StoredDatabase } from "~utils/types"
 
@@ -32,11 +33,33 @@ function SettingsPopup() {
     []
   )
 
+  const [token, setToken] = useStorage<string>({
+    key: STORAGE_KEYS.token,
+    area: "local"
+  })
+  const [tokenDraft, setTokenDraft] = useState("")
+  const [tokenSaving, setTokenSaving] = useState(false)
+  const [showToken, setShowToken] = useState(false)
+
   useEffect(() => {
     console.log(databases)
   }, [databases])
 
   const [authenticated] = useStorage("authenticated", false)
+
+  const handleSaveToken = async () => {
+    const trimmed = tokenDraft.trim()
+    if (!trimmed) return
+    setTokenSaving(true)
+    await setToken(trimmed)
+    setTokenSaving(false)
+    setTokenDraft("")
+  }
+
+  const handleClearToken = async () => {
+    await setToken("")
+    setTokenDraft("")
+  }
 
   const refreshSearch = useDebounce(
     async () => {
@@ -80,6 +103,67 @@ function SettingsPopup() {
 
   return (
     <>
+      <div className="mb-3 pb-3 border-b">
+        <h3 className="text-sm font-bold">Notion integration token</h3>
+        {token ? (
+          <div className="flex items-center justify-between gap-2 mt-1">
+            <p className="text-xs text-gray-600">
+              Token set (stored locally in this browser).
+            </p>
+            <button
+              className="button-small-outline text-xs"
+              onClick={handleClearToken}>
+              Clear
+            </button>
+          </div>
+        ) : (
+          <>
+            <p className="text-xs text-gray-600 mt-1">
+              Paste your internal integration token from{" "}
+              <a
+                className="link"
+                href="https://www.notion.so/my-integrations"
+                target="_blank"
+                rel="noreferrer">
+                notion.so/my-integrations
+              </a>
+              . Make sure to share each target database with the integration.
+            </p>
+            <div className="flex gap-1 mt-2">
+              <input
+                name="notion-token"
+                type={showToken ? "text" : "password"}
+                className="input flex-1"
+                value={tokenDraft}
+                onChange={(e) => setTokenDraft(e.target.value)}
+                placeholder="ntn_..."
+                autoComplete="off"
+                spellCheck={false}
+              />
+              <button
+                type="button"
+                className="button-small-outline text-xs"
+                onClick={() => setShowToken((v) => !v)}>
+                {showToken ? "Hide" : "Show"}
+              </button>
+              <button
+                type="button"
+                className="button text-xs"
+                disabled={!tokenDraft.trim() || tokenSaving}
+                onClick={handleSaveToken}>
+                {tokenSaving ? "..." : "Save"}
+              </button>
+            </div>
+          </>
+        )}
+      </div>
+      {!token && (
+        <p className="text-sm text-gray-600">
+          Add your Notion integration token above to start linking databases.
+        </p>
+      )}
+      {token && (
+      <>
       <h3 className="text-lg font-bold">
         {databases.length === 0
           ? i18n("settings_noLinkedDb")
@@ -207,6 +291,8 @@ function SettingsPopup() {
             </>
           )}
         </>
+      )}
+      </>
       )}
     </>
   )

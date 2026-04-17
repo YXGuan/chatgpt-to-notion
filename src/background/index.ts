@@ -1,33 +1,39 @@
 import { Storage } from "@plasmohq/storage"
 
-import { checkSaveConflict } from "~api/checkSaveConflict"
-import { generateToken } from "~api/generateToken"
-import { getDatabase } from "~api/getDatabase"
-import { searchNotion } from "~api/search"
 import { STORAGE_KEYS } from "~utils/consts"
 import type { ModelHeaders, SupportedModels } from "~utils/types"
 
 import {
   authenticate,
-  fetchHistory,
   refreshContentScripts,
   refreshDatabases,
-  refreshIcons,
-  save,
-  saveHistory
+  refreshIcons
 } from "./functions"
 
 const storage = new Storage()
 const session = new Storage({
   area: "session",
-  secretKeyList: ["token", "cacheHeaders"]
+  secretKeyList: ["cacheHeaders"]
+})
+const localSecrets = new Storage({
+  area: "local",
+  secretKeyList: ["token"]
+})
+
+// Re-run the auth/refresh flow whenever the user adds or removes their
+// Notion integration token from the Settings popup.
+localSecrets.watch({
+  [STORAGE_KEYS.token]: async () => {
+    const authed = await authenticate()
+    if (authed) {
+      await refreshDatabases()
+      refreshIcons()
+    }
+  }
 })
 
 chrome.runtime.onInstalled.addListener((details) => {
   if (details.reason === "install") {
-    chrome.tabs.create({
-      url: "https://www.maxai.me/partners/installed/chatgpt-to-notion/"
-    })
     storage.set(STORAGE_KEYS.ecoModeActive, false)
     storage.set(STORAGE_KEYS.ecoModePopup, false)
   }
@@ -35,21 +41,10 @@ chrome.runtime.onInstalled.addListener((details) => {
     chrome.tabs.create({
       url: `chrome-extension://${chrome.runtime.id}/tabs/update.html`
     })
-    // storage.get(STORAGE_KEYS.isPremium).then((isPremium) => {
-    //   if (!isPremium) {
-    //     chrome.tabs.create({
-    //       url: "https://www.extensions-hub.com/partners/updated?name=ChatGPT-to-Notion"
-    //     })
-    //   }
-    // })
   }
 
   refreshContentScripts()
 })
-
-chrome.runtime.setUninstallURL(
-  "https://www.extensions-hub.com/partners/uninstalled?name=ChatGPT-to-Notion"
-)
 
 const main = async () => {
   const authenticated = await authenticate()

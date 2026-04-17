@@ -1,22 +1,12 @@
-export const getToken = async ({ workspace_id, user_id }: GetTokenParams) => {
-  try {
-    const response = await fetch(
-      "https://chatgpt-to-notion.onrender.com/token",
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          workspace_id,
-          user_id
-        })
-      }
-    )
-    const res = await response.json()
-    return res
-  } catch (err) {
-    console.error(err)
+// Local-only build: the upstream implementation exchanged credentials with a
+// third-party server that stored Notion access tokens. We no longer do that.
+// The integration token is pasted by the user in the Settings popup.
+export const getToken = async (_: GetTokenParams) => {
+  return {
+    token: null,
+    isPremium: false,
+    activeTrial: false,
+    trial_end: 0
   }
 }
 

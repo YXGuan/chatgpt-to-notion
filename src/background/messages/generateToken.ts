@@ -1,30 +1,11 @@
 import type { PlasmoMessaging } from "@plasmohq/messaging"
-import { Storage } from "@plasmohq/storage"
 
-import { generateToken } from "~api/generateToken"
-import { STORAGE_KEYS } from "~utils/consts"
-
-const handler: PlasmoMessaging.MessageHandler = async (req, res) => {
-  try {
-    const session = new Storage({
-      area: "session",
-      secretKeyList: ["token", "cacheHeaders"]
-    })
-
-    const token = await session.get<string>(STORAGE_KEYS.token)
-    if (token) {
-      res.send({ token })
-      return
-    }
-
-    const { code } = req.body
-    const generateTokenRes = await generateToken(code)
-
-    res.send(generateTokenRes)
-  } catch (err) {
-    console.error(err)
-    res.send({ err })
-  }
+// Local-only build: OAuth code exchange is disabled. The user supplies their
+// Notion integration token directly in the Settings popup.
+const handler: PlasmoMessaging.MessageHandler = async (_req, res) => {
+  res.send({
+    err: "OAuth disabled in local-only build. Paste your Notion integration token in Settings."
+  })
 }
 
 export default handler

@@ -33,25 +33,12 @@ export default function Wrapper() {
     STORAGE_KEYS.popup,
     "wrongpage"
   )
-  const [token] = useStorage({ key: STORAGE_KEYS.token, area: "session" })
-  const [workspace_id] = useStorage(STORAGE_KEYS.workspace_id)
   const [historySaveProgress] = useStorage(STORAGE_KEYS.historySaveProgress, -1)
   const [historySaveErrors] = useStorage<HistorySaveError[]>(
     STORAGE_KEYS.historySaveErrors,
     []
   )
   const [historyLength] = useStorage(STORAGE_KEYS.historyLength, 0)
-
-  useEffect(() => {
-    let timeout: NodeJS.Timeout
-    if (!token && !workspace_id)
-      timeout = setTimeout(() => {
-        chrome.tabs.create({
-          url: "https://api.notion.com/v1/oauth/authorize?client_id=323a93e9-98a0-4f5a-a194-af728f1b817e&response_type=code&owner=user&redirect_uri=https%3A%2F%2Ftheo-lartigau.notion.site%2FChatGPT-to-Notion-af29d9538dca4493a15bb4ed0fde7f91"
-        })
-      }, 100)
-    return () => clearTimeout(timeout)
-  }, [token, workspace_id])
 
   useEffect(() => {
     if (

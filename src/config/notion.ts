@@ -7,7 +7,7 @@ import { STORAGE_KEYS } from "~utils/consts"
 
 const getNotion = async () => {
   const storage = new Storage({
-    area: "session",
+    area: "local",
     secretKeyList: ["token"]
   })
   const token = await storage.get(STORAGE_KEYS.token)
