@@ -1,5 +1,5 @@
 import type { PlasmoMessaging } from "@plasmohq/messaging"
-import { Storage } from "@plasmohq/storage"
+import { Storage } from "~utils/storage"
 
 import { listChatGPTProjects } from "~models/chatgpt/api/listProjects"
 import { STORAGE_KEYS } from "~utils/consts"

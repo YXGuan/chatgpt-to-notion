@@ -8,7 +8,7 @@ import type {
 import { createRoot } from "react-dom/client"
 import { compress } from "shrink-string"
 
-import { useStorage } from "@plasmohq/storage/hook"
+import { useStorage } from "~utils/storage"
 
 import PinIcon from "~common/pin"
 

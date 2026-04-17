@@ -1,4 +1,4 @@
-import { Storage } from "@plasmohq/storage"
+import { Storage } from "~utils/storage"
 
 import { getDatabase } from "~api/getDatabase"
 import { STORAGE_KEYS } from "~utils/consts"

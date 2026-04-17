@@ -1,7 +1,7 @@
 import { URL } from "url"
 
 import type { PlasmoMessaging } from "@plasmohq/messaging"
-import { Storage } from "@plasmohq/storage"
+import { Storage } from "~utils/storage"
 
 import { STORAGE_KEYS } from "~utils/consts"
 import type { SupportedModels } from "~utils/types"

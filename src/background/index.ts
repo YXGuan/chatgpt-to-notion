@@ -1,4 +1,4 @@
-import { Storage } from "@plasmohq/storage"
+import { Storage } from "~utils/storage"
 
 import { STORAGE_KEYS } from "~utils/consts"
 import type { ModelHeaders, SupportedModels } from "~utils/types"

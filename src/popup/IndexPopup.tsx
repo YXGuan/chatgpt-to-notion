@@ -1,7 +1,7 @@
 import banner1 from "data-base64:../../assets/banner-1.png"
 import bannerEco1 from "data-base64:../../assets/banner-eco-1.png"
 
-import { useStorage } from "@plasmohq/storage/hook"
+import { useStorage } from "~utils/storage"
 
 import {
   type AutosaveStatus,

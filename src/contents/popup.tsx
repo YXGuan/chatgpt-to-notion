@@ -3,7 +3,7 @@ import styleText from "data-text:~styles.css"
 import type { PlasmoCSConfig, PlasmoGetStyle } from "plasmo"
 import { useState } from "react"
 
-import { useStorage } from "@plasmohq/storage/hook"
+import { useStorage } from "~utils/storage"
 
 import useSavePercentage from "~hooks/useSavePercentage"
 import ErrorPopup from "~popup/ErrorPopup"

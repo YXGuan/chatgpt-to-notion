@@ -3,7 +3,7 @@ import bannerEco2 from "data-base64:../../assets/banner-eco-2.png"
 import { useEffect, useState } from "react"
 import { decompress } from "shrink-string"
 
-import { useStorage } from "@plasmohq/storage/hook"
+import { useStorage } from "~utils/storage"
 
 import type {
   Error,

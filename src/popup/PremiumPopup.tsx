@@ -2,7 +2,7 @@ import dayjs from "dayjs"
 import localizedFormat from "dayjs/plugin/localizedFormat"
 import { useEffect, useState } from "react"
 
-import { useStorage } from "@plasmohq/storage/hook"
+import { useStorage } from "~utils/storage"
 
 import { activateTrial } from "~api/activateTrial"
 import { registerKey } from "~api/registerKey"

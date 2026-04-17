@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react"
 
-import { useStorage } from "@plasmohq/storage/hook"
+import { useStorage } from "~utils/storage"
 
 import { STORAGE_KEYS } from "~utils/consts"
 // import Spinner from "~common/components/Spinner"

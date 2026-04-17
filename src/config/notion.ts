@@ -1,7 +1,7 @@
 // initialize notion sdk
 import { Client } from "@notionhq/client"
 
-import { Storage } from "@plasmohq/storage"
+import { Storage } from "~utils/storage"
 
 import { STORAGE_KEYS } from "~utils/consts"
 

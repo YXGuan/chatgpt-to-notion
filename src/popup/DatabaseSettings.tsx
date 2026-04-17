@@ -2,7 +2,7 @@ import type { DatabaseObjectResponse } from "@notionhq/client/build/src/api-endp
 import { useEffect, useState } from "react"
 
 import { sendToBackground } from "@plasmohq/messaging"
-import { useStorage } from "@plasmohq/storage/hook"
+import { useStorage } from "~utils/storage"
 
 import DropdownPopup from "~common/components/Dropdown"
 import Spinner from "~common/components/Spinner"

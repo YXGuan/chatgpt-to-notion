@@ -2,7 +2,7 @@ import type { PlasmoCSConfig } from "plasmo"
 import { compress } from "shrink-string"
 
 import { sendToBackground } from "@plasmohq/messaging"
-import { Storage } from "@plasmohq/storage"
+import { Storage } from "~utils/storage"
 
 import { parseSave } from "~api/parseSave"
 import { STORAGE_KEYS } from "~utils/consts"

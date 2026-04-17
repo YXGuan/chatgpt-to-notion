@@ -1,7 +1,7 @@
 import type { BlockObjectRequest } from "@notionhq/client/build/src/api-endpoints"
 import { markdownToBlocks } from "@tryfabric/martian"
 
-import { Storage } from "@plasmohq/storage"
+import { Storage } from "~utils/storage"
 
 import nhm from "~config/html-markdown"
 import type { ChatConfig, Error } from "~utils/types"

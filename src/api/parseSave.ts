@@ -1,6 +1,6 @@
 import { decompress } from "shrink-string"
 
-import { Storage } from "@plasmohq/storage"
+import { Storage } from "~utils/storage"
 
 import getNotion from "~config/notion"
 import { i18n, limitBlockNesting } from "~utils/functions"

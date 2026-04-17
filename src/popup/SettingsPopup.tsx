@@ -1,7 +1,7 @@
 import type { DatabaseObjectResponse } from "@notionhq/client/build/src/api-endpoints"
 import { useEffect, useState } from "react"
 
-import { useStorage } from "@plasmohq/storage/hook"
+import { useStorage } from "~utils/storage"
 
 import useDebounce from "~hooks/useDebounce"
 import { STORAGE_KEYS } from "~utils/consts"

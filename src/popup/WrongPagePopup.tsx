@@ -1,4 +1,4 @@
-import { useStorage } from "@plasmohq/storage/hook"
+import { useStorage } from "~utils/storage"
 
 import "~styles.css"
 

@@ -7,7 +7,7 @@ import { useCallback, useEffect, useState } from "react"
 import { createRoot } from "react-dom/client"
 import { compress } from "shrink-string"
 
-import { useStorage } from "@plasmohq/storage/hook"
+import { useStorage } from "~utils/storage"
 
 import LogoIcon from "~common/logo"
 import PinIcon from "~common/pin"

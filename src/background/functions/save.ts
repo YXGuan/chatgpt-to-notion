@@ -1,4 +1,4 @@
-import { Storage } from "@plasmohq/storage"
+import { Storage } from "~utils/storage"
 
 import { getConversation } from "~api/getConversation"
 import { getConversationTextdocs } from "~api/getConversationTextdocs"
@@ -110,6 +110,11 @@ const save = async (
       STORAGE_KEYS.saveStatus,
       `saving:${0}:${parsedReq.chunks.length}` as SaveStatus
     )
+    // Throttle per-chunk progress writes so we never flood chrome.storage
+    // (the old code wrote once per chunk and could easily trip storage
+    // write-rate quotas on long conversations).
+    let lastProgressWrite = 0
+    const progressIntervalMs = 400
     const res = await saveChat(
       {
         ...parsedReq,
@@ -118,11 +123,16 @@ const save = async (
         generateHeadings,
         saveBehavior
       },
-      (saved) =>
+      (saved) => {
+        const now = Date.now()
+        const isFinal = saved >= parsedReq.chunks.length
+        if (!isFinal && now - lastProgressWrite < progressIntervalMs) return
+        lastProgressWrite = now
         storage.set(
           STORAGE_KEYS.saveStatus,
           `saving:${saved}:${parsedReq.chunks.length}` as SaveStatus
         )
+      }
     )
 
     await storage.set(STORAGE_KEYS.saveStatus, "saved" as SaveStatus)

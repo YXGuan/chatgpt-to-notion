@@ -1,6 +1,6 @@
 import illustration from "data-base64:../../assets/illustration.png"
 
-import { useStorage } from "@plasmohq/storage/hook"
+import { useStorage } from "~utils/storage"
 
 import type {
   HistorySaveError,

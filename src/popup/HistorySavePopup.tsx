@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react"
 
 import { sendToBackground } from "@plasmohq/messaging"
-import { useStorage } from "@plasmohq/storage/hook"
+import { useStorage } from "~utils/storage"
 
 import Disclosure from "~common/components/Disclosure"
 import DropdownPopup from "~common/components/Dropdown"

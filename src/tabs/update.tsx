@@ -1,4 +1,4 @@
-import { useStorage } from "@plasmohq/storage/hook"
+import { useStorage } from "~utils/storage"
 
 import Markdown from "~lib/react-markdown.min.js"
 
